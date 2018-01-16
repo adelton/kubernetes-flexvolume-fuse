@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod-custodia
+spec:
+  containers:
+  - image: registry.access.redhat.com/rhel7
+    name: test-pod-custodia
+    command: ["/usr/bin/sleep"]
+    args: ["infinity"]
+    volumeMounts:
+    - mountPath: /mnt/custodia
+      name: custodia-cli
+  volumes:
+  - flexVolume:
+      driver: example.com/custodia-cli-fuse
+    name: custodia-cli
