@@ -271,3 +271,9 @@ module, configured either in the images or in Pod specification via
 environment variables (`PGPASSFILE=/mnt/hashicorp/db/password` for
 PostgreSQL), or symbolic links can be created in the images pointing
 from the default locations to the location under mount path.
+
+---
+
+# Other resources
+
+* [Example of basic FUSE flexVolume](flexvolume-fuse.md)
