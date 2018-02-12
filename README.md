@@ -231,6 +231,72 @@ outside of the scope of this FUSE flexVolume driver.
 Alternatively, the helper could likely use some different secret of
 the Pod to authenticate with the identity of the Pod directly.
 
+# Typical operation
+
+0. Node's identity is established, credentials generated (client
+certificate, Kerberos keytab).
+1. Pod gets created requesting the FUSE flexVolume driver to be
+started and mounted (for example under `/mnt/secrets`).
+2. When the Pod get scheduled on the Node, the FUSE driver process is
+started, running on the Node as root outside of the Containers'
+namespaces. The FUSE process gets passed the identity of the Pod by
+Kubelet during start.
+```
++---------------------------------+ +-------------------+
+| Node                            | | External vault    |
+| <0> { node's credentials }      | | or secrets source |
+| /.../secret-getter-helper       | |                   |
+|                                 | |                   |
+| +----------------+              | +-------------------+
+| | Pod            |              |
+| | Container(s)   |              |
+| | /mnt/secrets <=|= FUSE driver |
+| |       <2> mounted             |
+| +----------------+              |
+|                                 |
+| +----------------+              |
+| | Pod            |              |
+| | Container(s)   |              |
+| | /mnt/secrets <=|= FUSE driver |
+| |       <2> mounted             |
+| +----------------+              |
++---------------------------------+
+
+<1>
+  containers:
+  - ...
+    volumeMounts:
+    - mountPath: /mnt/hashicorp
+      name: hashicorp-cli
+  volumes:
+  - flexVolume:
+      driver: example.com/hashicorp-cli-fuse
+    name: hashicorp-cli
+
+```
+
+3. When the process accesses "file" entry under `/mnt/secrets`, FUSE
+operations get invoked in the FUSE driver.
+4. The FUSE driver calls the external helper program, as root on the
+Node, which can use Node's credentials to authenticate to the external
+Vault, plus use the "file" name and Pod's identity to request the
+correct secret from the Vault.
+```
++----------------------------------+ +-------------------+
+| Node                             | | External vault    |
+| { node's credentials }  --+--------> or secrets source |
+| /.../secret-getter-helper +      | |                   |
+|                           |      | |                   |
+| +----------------+        |      | +-------------------+
+| | Pod            |        |      |
+| | Container(s)   |        |      |
+| | <3> access to  |        |      |
+| |     file under |       <4>     |
+| | /mnt/secrets  --- FUSE driver  |
+| +----------------+  calls helper |
++----------------------------------+
+```
+
 # Deployment expectations
 
 ## Administrator
